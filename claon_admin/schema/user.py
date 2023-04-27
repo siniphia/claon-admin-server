@@ -63,8 +63,8 @@ class Lector(Base):
     _certificate = Column(TEXT)
     _career = Column(TEXT)
 
-    user_id = Column(String(length=255), ForeignKey("tb_user.id"), unique=True, nullable=False)
-    user = relationship("User")
+    user_id = Column(String(length=255), ForeignKey("tb_user.id", ondelete="CASCADE"), unique=True, nullable=False)
+    user = relationship("User", backref=backref("Lector"))
 
     @property
     def contest(self):
@@ -108,8 +108,8 @@ class LectorApprovedFile(Base):
     id = Column(String(length=255), primary_key=True, default=str(uuid4()))
     url = Column(String(length=255))
 
-    lector_id = Column(String(length=255), ForeignKey('tb_lector.id'))
-    lector = relationship("Lector", backref=backref("LectorApprovedFile", cascade="all, delete"))
+    lector_id = Column(String(length=255), ForeignKey('tb_lector.id', ondelete="CASCADE"), nullable=False)
+    lector = relationship("Lector", backref=backref("LectorApprovedFile", cascade="all,delete"))
 
 
 class UserRepository:
@@ -142,6 +142,11 @@ class UserRepository:
     @staticmethod
     async def find_by_oauth_id_and_sns(session: AsyncSession, oauth_id: str, sns: str):
         result = await session.execute(select(User).where(and_(User.oauth_id == oauth_id, User.sns == sns)))
+        return result.scalars().one_or_none()
+
+    @staticmethod
+    async def find_by_oauth_id(session: AsyncSession, oauth_id: str):
+        result = await session.execute(select(User).where(User.oauth_id == oauth_id))
         return result.scalars().one_or_none()
 
     @staticmethod
